@@ -8,11 +8,18 @@ machine, no cloud service required.
 
 ```bash
 npm install
-cp .env.example .env   # then edit OBSIDIAN_VAULT_PATH
 npm start
 ```
 
-Open http://localhost:4173
+Open http://localhost:4173 — everything else is set up from inside the app:
+
+- **Ideas backlog** will show a box asking for your Obsidian vault folder the
+  first time. In Obsidian, click your vault name (top-left) to see its path,
+  or right-click it → "Reveal in Finder" and copy that folder. Paste it in
+  and save — no file editing needed. (You can also set it once via
+  `OBSIDIAN_VAULT_PATH` in a `.env` file, copied from `.env.example`, if you'd
+  rather not use the UI.)
+- **Coding-session tracking** needs a one-time command — see below.
 
 Data is stored in `data/store.json` (created automatically on first run,
 gitignored). Back it up like any other file — there's no database server.
@@ -30,26 +37,19 @@ gitignored). Back it up like any other file — there's no database server.
 ## Coding-session hook
 
 Claude Code has a `StopFailure` hook that fires when a turn ends in an API
-error, with a `rate_limit` error type when you've hit your usage limit. Add
-this to your global `~/.claude/settings.json` (merge with whatever hooks you
-already have):
+error, with a `rate_limit` error type when you've hit your usage limit.
+Run this once, from inside this folder:
 
-```json
-{
-  "hooks": {
-    "StopFailure": [
-      {
-        "matcher": "rate_limit",
-        "hooks": [
-          { "type": "command", "command": "/home/user/tungo/hooks/on-rate-limit.sh" }
-        ]
-      }
-    ]
-  }
-}
+```bash
+npm run setup-hook
 ```
 
-Use the real absolute path to this repo on your machine. The script just
+It edits your global `~/.claude/settings.json` for you — backing up the
+original first, and merging in alongside any hooks you already have (it
+won't touch or duplicate anything). Running it again is safe; it just
+checks whether it's already wired up.
+
+Under the hood, that hook config points at `hooks/on-rate-limit.sh`, which
 POSTs to `http://localhost:4173/api/coding-sessions/increment` and fails
 silently if the server isn't running, so it never gets in the way of a
 Claude Code session.

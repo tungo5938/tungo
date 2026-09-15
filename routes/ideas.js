@@ -1,4 +1,5 @@
 const express = require('express');
+const store = require('../lib/store');
 const { loadVault } = require('../lib/vault');
 
 const router = express.Router();
@@ -7,7 +8,7 @@ const router = express.Router();
 // Re-reads the vault from disk on every request — it's a handful of files
 // on your own Mac, no need to cache it.
 router.get('/', (req, res) => {
-  const vaultPath = process.env.OBSIDIAN_VAULT_PATH;
+  const vaultPath = store.load().settings.obsidianVaultPath || process.env.OBSIDIAN_VAULT_PATH;
   res.json(loadVault(vaultPath));
 });
 

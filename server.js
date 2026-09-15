@@ -14,6 +14,7 @@ app.use('/api/expenses', require('./routes/expenses'));
 app.use('/api/products', require('./routes/products'));
 app.use('/api/bonus', require('./routes/bonus'));
 app.use('/api/ideas', require('./routes/ideas'));
+app.use('/api/settings', require('./routes/settings'));
 
 const PORT = process.env.PORT || 4173;
 app.listen(PORT, () => {

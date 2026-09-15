@@ -295,13 +295,41 @@
   /* ================= IDEAS BACKLOG (read-only Obsidian vault) ================= */
   const CATEGORY_LABELS = { 'cat-1': 'var(--cat-1)', 'cat-2': 'var(--cat-2)', 'cat-3': 'var(--cat-3)', 'cat-4': 'var(--cat-4)' };
 
+  function renderVaultPrompt(notFoundPath) {
+    const banner = document.getElementById('vault-banner');
+    banner.innerHTML =
+      `<div class="banner">` +
+      `<div style="margin-bottom:8px">No vault set up yet${notFoundPath ? ` — couldn't find <code>${escapeHtml(notFoundPath)}</code>` : ''}. ` +
+      `In Obsidian: click your vault name (top-left) → the path is shown there, or right-click it → "Reveal in Finder" and copy that folder's path.</div>` +
+      `<div style="display:flex; gap:8px; flex-wrap:wrap">` +
+      `<input type="text" id="vault-path-input" class="modal-input" style="flex:1; min-width:240px" placeholder="/Users/you/Documents/Obsidian/MyVault">` +
+      `<button class="modal-btn" id="vault-path-save">Save</button>` +
+      `</div><div id="vault-path-error" style="color:var(--critical); font-size:12px; margin-top:6px"></div>` +
+      `</div>`;
+    document.getElementById('vault-path-save').addEventListener('click', async () => {
+      const input = document.getElementById('vault-path-input');
+      const errEl = document.getElementById('vault-path-error');
+      try {
+        await api('/settings', { method: 'PUT', body: JSON.stringify({ obsidianVaultPath: input.value }) });
+        renderIdeas();
+      } catch (e) {
+        errEl.textContent = e.message;
+      }
+    });
+  }
+
   async function renderIdeas() {
     const data = await api('/ideas');
     const banner = document.getElementById('vault-banner');
     if (!data.available) {
-      banner.innerHTML = `<div class="banner">No Obsidian vault found${data.path ? ` at <code>${escapeHtml(data.path)}</code>` : ''}. Set <code>OBSIDIAN_VAULT_PATH</code> in your <code>.env</code> file and restart the server.</div>`;
+      renderVaultPrompt(data.path);
     } else {
-      banner.innerHTML = `<div class="banner">${data.nodes.length} notes · read from <code>${escapeHtml(data.path)}</code> — edit in Obsidian, this view just reads it.</div>`;
+      banner.innerHTML =
+        `<div class="banner" style="display:flex; align-items:center; gap:12px; flex-wrap:wrap">` +
+        `<span>${data.nodes.length} notes · read from <code>${escapeHtml(data.path)}</code> — edit in Obsidian, this view just reads it.</span>` +
+        `<button class="rm-add-btn" id="vault-change-btn" style="margin-left:auto">change folder</button>` +
+        `</div>`;
+      document.getElementById('vault-change-btn').addEventListener('click', () => renderVaultPrompt());
     }
 
     const svg = document.getElementById('graph-svg');
