@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Hermes Deck</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Karla:ital,wght@0,400..700;1,400..700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="wrap">
+
+  <div class="topbar">
+    <div class="brand">
+      <div class="brand-mark">H</div>
+      <div class="brand-text"><h1>Hermes Deck</h1></div>
+    </div>
+  </div>
+
+  <!-- ============ HABITS + MONTH TABLE ============ -->
+  <section id="habits">
+    <div class="section-head">
+      <h2>Habits &amp; goals</h2>
+      <div class="month-nav">
+        <button id="month-prev">&lsaquo;</button>
+        <span id="month-label" class="mono"></span>
+        <button id="month-next">&rsaquo;</button>
+      </div>
+    </div>
+
+    <div class="stat-strip" style="margin-bottom:14px">
+      <div class="stat hl"><span class="v mono" id="stat-health-streak">–</span><span class="k">health day streak</span></div>
+      <div class="stat"><span class="v mono" id="stat-coding-streak">–</span><span class="k">day coding streak</span></div>
+      <div class="stat tooltip-wrap" id="today-expense-stat" tabindex="0">
+        <span class="v mono" id="stat-expense-today">–</span><span class="k">today's expense (net)</span>
+        <div class="tooltip-pop" id="expense-tooltip"></div>
+      </div>
+    </div>
+
+    <div class="card table-card">
+      <table class="month" id="month-table"></table>
+    </div>
+  </section>
+
+  <!-- ============ PRODUCTS ============ -->
+  <section id="products">
+    <div class="section-head">
+      <h2>Product goals</h2>
+    </div>
+    <div class="card table-card">
+      <table class="roadmap">
+        <thead><tr><th>Product</th><th>#</th><th>Phase goal</th><th>Deadline</th><th>Status</th></tr></thead>
+        <tbody id="roadmap-body"></tbody>
+      </table>
+      <div class="rm-add-row"><button class="rm-add-btn" id="add-product-btn">+ add product</button></div>
+    </div>
+  </section>
+
+  <!-- ============ IDEAS ============ -->
+  <section id="ideas">
+    <div class="section-head">
+      <h2>Ideas backlog</h2>
+    </div>
+    <div class="card">
+      <div id="vault-banner"></div>
+      <div class="ideas-split">
+        <div class="graph-pane">
+          <div class="graph-box"><svg viewBox="0 0 400 420" id="graph-svg"></svg></div>
+          <div class="legend-row" id="legend-row"></div>
+        </div>
+        <div class="doc-pane" id="doc-pane"><div class="doc-empty">Click a node to open its note.</div></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="modal-overlay" id="bonus-modal" hidden>
+    <div class="modal-card">
+      <div class="modal-title">Weekly bonus</div>
+      <label class="modal-label">Reward name</label>
+      <input type="text" id="bonus-name-input" class="modal-input">
+      <label class="modal-check"><input type="checkbox" id="bonus-achieved-input"> Achieved this week</label>
+      <div class="modal-actions">
+        <button class="modal-btn ghost" id="bonus-cancel">Cancel</button>
+        <button class="modal-btn" id="bonus-save">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="goal-modal" hidden>
+    <div class="modal-card">
+      <div class="modal-title" id="goal-modal-title">Product goal</div>
+      <div id="goal-modal-list" class="goal-modal-list"></div>
+      <div class="modal-actions">
+        <button class="modal-btn ghost" id="goal-cancel">Cancel</button>
+        <button class="modal-btn" id="goal-save">Save</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+<script src="app.js"></script>
+</body>
+</html>
