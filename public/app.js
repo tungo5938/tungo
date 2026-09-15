@@ -194,16 +194,20 @@
       }).join('');
     }
 
-    const bonusRow = '<tr class="bonus-row"><th class="rowlabel">Weekly bonus</th>' + cellsAcrossDays((d) => {
-      if (!isSun(d)) return '';
-      const dateStr = `${year}-${pad(month0 + 1)}-${pad(d)}`;
+    const bonusRow = '<tr class="bonus-row"><th class="rowlabel">Weekly bonus</th>' + groups.map((g) => {
+      // Only a group that actually ends on a Sunday within this month has a
+      // real week-ending date to key a bonus on (a trailing partial week
+      // that hasn't reached its Sunday yet doesn't).
+      if (weekdayMon0(year, month0, g.endDay) !== 6) {
+        return `<td class="cell week-end" colspan="${g.count}"><div class="bonus-cell disabled">—</div></td>`;
+      }
+      const dateStr = `${year}-${pad(month0 + 1)}-${pad(g.endDay)}`;
       const b = bonuses[dateStr];
-      const click = ` editable" title="click to view/edit" data-week-end="${dateStr}`;
-      if (d > today && today > 0 && !b) return `<div class="in future${click}">·</div>`;
-      if (!b) return `<div class="in miss${click}">✗</div>`;
-      if (b.achieved) return `<div class="in done bonus-badge${click}">🎁</div>`;
-      return `<div class="in miss${click}">✗</div>`;
-    }) + '</tr>';
+      const cls = !b ? 'none' : (b.achieved ? 'done' : 'miss');
+      const icon = !b ? '·' : (b.achieved ? '🎁' : '✗');
+      const label = b ? escapeHtml(b.name) : 'no reward set yet';
+      return `<td class="cell week-end" colspan="${g.count}"><div class="bonus-cell ${cls}" title="click to view/edit" data-week-end="${dateStr}"><span>${icon}</span><span class="bc-text">${label}</span></div></td>`;
+    }).join('') + '</tr>';
 
     const table = document.getElementById('month-table');
     table.innerHTML = thead + '<tbody>' + healthRow + codingRow + productRows + bonusRow + '</tbody>';
@@ -211,7 +215,7 @@
     table.querySelectorAll('.in[data-date]').forEach((el) => {
       el.addEventListener('click', () => toggleHealth(el.dataset.date));
     });
-    table.querySelectorAll('.in[data-week-end]').forEach((el) => {
+    table.querySelectorAll('.bonus-cell[data-week-end]').forEach((el) => {
       el.addEventListener('click', () => openBonusModal(el.dataset.weekEnd, bonuses[el.dataset.weekEnd]));
     });
     table.querySelectorAll('.prod-cell[data-key]').forEach((el) => {
@@ -248,7 +252,10 @@
         }
         html += `<td class="mono">${ph.n}</td>`;
         html += `<td class="rm-goal" contenteditable="true" data-key="${p.key}" data-n="${ph.n}" data-field="goal">${escapeHtml(ph.goal)}</td>`;
-        html += `<td><input type="date" class="modal-input mono" style="padding:4px 6px" value="${ph.deadline || ''}" data-key="${p.key}" data-n="${ph.n}" data-field="deadline"></td>`;
+        html += `<td>` +
+          `<input type="date" class="modal-input mono" style="padding:4px 6px" value="${ph.deadline || ''}" data-key="${p.key}" data-n="${ph.n}" data-field="deadline">` +
+          `<div class="rm-deadline-label mono">${ph.deadline ? weekLabelFor(ph.deadline) : 'no date set'}</div>` +
+          `</td>`;
         html += `<td><label class="rm-status ${ph.done ? 'done' : 'todo'}"><input type="checkbox" ${ph.done ? 'checked' : ''} data-key="${p.key}" data-n="${ph.n}" data-field="done"> ${ph.done ? 'Done' : 'To do'}</label></td>`;
         html += '</tr>';
       });
@@ -264,6 +271,7 @@
     body.querySelectorAll('input[data-field="deadline"]').forEach((el) => {
       el.addEventListener('change', async () => {
         await api(`/products/${el.dataset.key}/phases/${el.dataset.n}`, { method: 'PATCH', body: JSON.stringify({ deadline: el.value }) });
+        renderRoadmap();
         renderTable();
       });
     });
@@ -295,14 +303,24 @@
   /* ================= IDEAS BACKLOG (read-only Obsidian vault) ================= */
   const CATEGORY_LABELS = { 'cat-1': 'var(--cat-1)', 'cat-2': 'var(--cat-2)', 'cat-3': 'var(--cat-3)', 'cat-4': 'var(--cat-4)' };
 
-  function renderVaultPrompt(notFoundPath) {
+  function renderVaultPrompt(data) {
+    data = data || {};
     const banner = document.getElementById('vault-banner');
+    let notice;
+    if (data.error === 'permission-denied') {
+      notice = `<b>macOS is blocking access to that folder.</b> ${escapeHtml(data.message)}`;
+    } else if (data.error === 'read-error') {
+      notice = `Couldn't read <code>${escapeHtml(data.path)}</code>: ${escapeHtml(data.message)}`;
+    } else if (data.path) {
+      notice = `No vault set up yet — couldn't find <code>${escapeHtml(data.path)}</code>. In Obsidian: click your vault name (top-left) → the path is shown there, or right-click it → "Reveal in Finder" and copy that folder's path.`;
+    } else {
+      notice = `No vault set up yet. In Obsidian: click your vault name (top-left) → the path is shown there, or right-click it → "Reveal in Finder" and copy that folder's path.`;
+    }
     banner.innerHTML =
       `<div class="banner">` +
-      `<div style="margin-bottom:8px">No vault set up yet${notFoundPath ? ` — couldn't find <code>${escapeHtml(notFoundPath)}</code>` : ''}. ` +
-      `In Obsidian: click your vault name (top-left) → the path is shown there, or right-click it → "Reveal in Finder" and copy that folder's path.</div>` +
+      `<div style="margin-bottom:8px">${notice}</div>` +
       `<div style="display:flex; gap:8px; flex-wrap:wrap">` +
-      `<input type="text" id="vault-path-input" class="modal-input" style="flex:1; min-width:240px" placeholder="/Users/you/Documents/Obsidian/MyVault">` +
+      `<input type="text" id="vault-path-input" class="modal-input" style="flex:1; min-width:240px" placeholder="/Users/you/Documents/Obsidian/MyVault" value="${data.path ? escapeHtml(data.path) : ''}">` +
       `<button class="modal-btn" id="vault-path-save">Save</button>` +
       `</div><div id="vault-path-error" style="color:var(--critical); font-size:12px; margin-top:6px"></div>` +
       `</div>`;
@@ -322,7 +340,7 @@
     const data = await api('/ideas');
     const banner = document.getElementById('vault-banner');
     if (!data.available) {
-      renderVaultPrompt(data.path);
+      renderVaultPrompt(data);
     } else {
       banner.innerHTML =
         `<div class="banner" style="display:flex; align-items:center; gap:12px; flex-wrap:wrap">` +
@@ -351,7 +369,8 @@
     const circles = {};
     data.nodes.forEach((n) => {
       const c = document.createElementNS(ns, 'circle');
-      c.setAttribute('cx', n.x); c.setAttribute('cy', n.y); c.setAttribute('r', 7);
+      const r = Math.min(13, 5.5 + (n.degree || 0) * 1.4);
+      c.setAttribute('cx', n.x); c.setAttribute('cy', n.y); c.setAttribute('r', r);
       c.setAttribute('fill', CATEGORY_LABELS[n.color] || 'var(--cat-1)');
       c.style.cursor = 'pointer';
       c.addEventListener('click', () => openDoc(n.id));
@@ -411,8 +430,19 @@
   document.addEventListener('click', (e) => { if (!expenseStat.contains(e.target)) expenseStat.classList.remove('show'); });
 
   /* ================= INIT ================= */
-  renderTable();
-  renderRoadmap();
-  renderIdeas();
-  renderExpenseStat();
+  function safe(name, fn) {
+    Promise.resolve().then(fn).catch((e) => {
+      console.error(name + ' failed:', e);
+      const el = document.querySelector('#' + name) || document.body;
+      const note = document.createElement('div');
+      note.className = 'banner';
+      note.style.color = 'var(--critical)';
+      note.textContent = `${name} didn't load: ${e.message}`;
+      el.prepend(note);
+    });
+  }
+  safe('habits', renderTable);
+  safe('products', renderRoadmap);
+  safe('ideas', renderIdeas);
+  safe('habits', renderExpenseStat);
 })();
