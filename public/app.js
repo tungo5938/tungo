@@ -306,6 +306,12 @@
   function renderVaultPrompt(data) {
     data = data || {};
     const banner = document.getElementById('vault-banner');
+
+    if (data.error === 'hosted') {
+      banner.innerHTML = `<div class="banner">${escapeHtml(data.message)}</div>`;
+      return;
+    }
+
     let notice;
     if (data.error === 'permission-denied') {
       notice = `<b>macOS is blocking access to that folder.</b> ${escapeHtml(data.message)}`;
